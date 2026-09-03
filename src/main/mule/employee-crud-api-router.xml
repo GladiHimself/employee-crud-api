@@ -125,12 +125,23 @@ output application/json
         </error-handler>
     </flow>
     <flow name="put:\employees\(id):application\json:employee-crud-api-config">
-        <ee:transform doc:name="Transform Message">
-            <ee:variables>
-                <ee:set-variable variableName="id">attributes.uriParams.'id'</ee:set-variable>
-            </ee:variables>
-        </ee:transform>
-        <logger level="INFO" message="put:\employees\(id):application\json:employee-crud-api-config" />
+		<db:update doc:name="Update" doc:id="b5132f5c-2ff8-4f9b-89ce-3c7a77ade3aa" config-ref="Database_Config">
+			<db:sql ><![CDATA[UPDATE employee SET name = :name, department = :dept, salary = :salary WHERE id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+       'id': attributes.uriParams.id,
+       'name': payload.name,
+       'dept': payload.department,
+       'salary': payload.salary
+     }]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message" doc:id="262ea2f0-5191-4328-b469-7608d49de76f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ message: "Employee updated successfully" }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
     </flow>
     <flow name="delete:\employees\(id):employee-crud-api-config">
         <ee:transform doc:name="Transform Message">
