@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
     <apikit:config name="employee-crud-api-config" api="employee-crud-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
     <http:listener-config name="HTTP_Listener_config1" doc:name="HTTP Listener config" doc:id="01037f69-79cc-4247-91b6-36bc5d060a69" >
 		<http:listener-connection host="0.0.0.0" port="8082" />
@@ -141,16 +142,73 @@ output application/json
     </flow>
     <flow name="get:\employees:employee-crud-api-config">
         <logger level="INFO" message="get:\employees:employee-crud-api-config" />
+		<db:select doc:name="Select" doc:id="7d6d503a-1b42-4762-a785-ba86e134734d" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM employee]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="772a6273-c7c7-49bd-bc0c-b074cafc09af" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
     </flow>
     <flow name="get:\employees\(id):employee-crud-api-config">
-        <ee:transform doc:name="Transform Message">
-            <ee:variables>
-                <ee:set-variable variableName="id">attributes.uriParams.'id'</ee:set-variable>
-            </ee:variables>
-        </ee:transform>
-        <logger level="INFO" message="get:\employees\(id):employee-crud-api-config" />
+		<db:select doc:name="Select" doc:id="8626faf9-809a-488d-8773-9c57b5b77ff1" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM employee WHERE id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{ 'id': attributes.uriParams.id }]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="c0e43238-65e2-43ab-9d86-cd27dd2c17df" >
+			<when expression="#[sizeOf(payload) == 0]">
+				<set-variable value="404" doc:name="Set Variable" doc:id="3a60744f-4f38-4b28-b0af-e5ec5a311096" variableName="httpStatus"/>
+				<ee:transform doc:name="Transform Message" doc:id="3eb60762-5527-49de-8a17-5f7a60a0f31d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ error: "Employee not found" }]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="e0020a2d-9755-481b-84a4-a54e48c97037">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload[0]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
     </flow>
-    <flow name="post:\employees:application\json:employee-crud-api-config">
-        <logger level="INFO" message="post:\employees:application\json:employee-crud-api-config" />
+	<flow name="post:\employees:application\json:employee-crud-api-config">
+		<ee:transform doc:name="Transform Message" doc:id="3483f5d4-67bc-4045-a26f-47b1ad4d7456" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="4c2ec42c-36a4-473e-a9f7-84fcac2a6bb5" variableName="empPayload"/>
+		<db:insert doc:name="Insert" doc:id="66cc4ebe-d26d-4c40-be31-45287642bab2" config-ref="Database_Config" autoGenerateKeys="true">
+			<db:sql ><![CDATA[INSERT INTO employee (name, department, salary) VALUES (:name, :dept, :salary)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+  'name': vars.empPayload.name,
+  'dept': vars.empPayload.department,
+  'salary': vars.empPayload.salary
+}]]]></db:input-parameters>
+		</db:insert>
+		<set-variable value="201" doc:name="Set Variable" doc:id="bca9e4bc-1baf-4f8a-9f84-e98936757f45" variableName="httpStatus"/>
+		<ee:transform doc:name="Transform Message" doc:id="99d8cffa-ccd1-4fd0-8adf-f55880fd229c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ message: "Employee created successfully" }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
     </flow>
 </mule>
