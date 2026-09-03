@@ -144,12 +144,11 @@ output application/json
 		</ee:transform>
     </flow>
     <flow name="delete:\employees\(id):employee-crud-api-config">
-        <ee:transform doc:name="Transform Message">
-            <ee:variables>
-                <ee:set-variable variableName="id">attributes.uriParams.'id'</ee:set-variable>
-            </ee:variables>
-        </ee:transform>
-        <logger level="INFO" message="delete:\employees\(id):employee-crud-api-config" />
+		<db:delete doc:name="Delete" doc:id="fe770ec9-2abf-4918-baad-07782cbe495f" config-ref="Database_Config">
+			<db:sql ><![CDATA[DELETE FROM employee WHERE id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{ 'id': attributes.uriParams.id }]]]></db:input-parameters>
+		</db:delete>
+		<set-variable value="204" doc:name="Set Variable" doc:id="981da9f1-9a69-4388-a87a-c0ec1ee5550b" variableName="httpStatus"/>
     </flow>
     <flow name="get:\employees:employee-crud-api-config">
         <logger level="INFO" message="get:\employees:employee-crud-api-config" />
