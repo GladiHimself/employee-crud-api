@@ -1,0 +1,44 @@
+#%RAML 1.0
+title: Employee CRUD API
+version: v1
+baseUri: http://localhost:8081/api
+
+types:
+  Employee:
+    type: object
+    properties:
+      id?: integer
+      name: string
+      department: string
+      salary: number
+
+/employees:
+  get:
+    responses:
+      200:
+        body:
+          application/json:
+            type: Employee[]
+  post:
+    body:
+      application/json:
+        type: Employee
+    responses:
+      201:
+  /{id}:
+    get:
+      responses:
+        200:
+          body:
+            application/json:
+              type: Employee
+        404:
+    put:
+      body:
+        application/json:
+          type: Employee
+      responses:
+        200:
+    delete:
+      responses:
+        204:
