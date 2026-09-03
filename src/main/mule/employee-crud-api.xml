@@ -12,6 +12,39 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="1a14a776-f8a2-45df-96b6-4cb17f6f2063" >
 		<db:my-sql-connection host="localhost" port="3306" user="root" database="employee_db" />
 	</db:config>
+	<db:config name="Database_Config1" doc:name="Database Config" doc:id="bcaec9fc-ab0c-44b5-af43-f5dc2cf47507" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" database="employee_db" />
+	</db:config>
+	<flow name="get-employee-by-id-flow" doc:id="6a58bded-2dfe-432a-8a7d-598c0d5181e0" >
+		<http:listener doc:name="Listener" doc:id="1f13e9ed-e69f-428d-880c-3656151899d0" config-ref="HTTP_Listener_config" path="/employees/{id}"/>
+		<db:select doc:name="Select" doc:id="535ddb7d-0175-411c-828c-b965305c1072" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM employee WHERE id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[  #[{ 'id': attributes.uriParams.id }]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="b4cdc08b-e4d1-41c7-9851-3d377c75d872" >
+			<when expression="#[sizeOf(payload) == 0]">
+				<set-variable value="404" doc:name="Set Variable" doc:id="68422c46-3b86-42b5-a467-f69ef1b813b9" variableName="httpStatus"/>
+				<ee:transform doc:name="Transform Message" doc:id="c818817c-841c-4120-aa94-61a2143b46dd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ error: "Employee not found" }]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="00ebca56-0c0d-4303-ac72-fe2948d221d0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload[0]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
 	<flow name="get-all-employees-flow" doc:id="daa382e2-21e2-49c3-b7ca-5b0bab6161e1" >
 		<http:listener doc:name="Listener" doc:id="a47d97a0-fd52-4844-b858-c41be3620184" config-ref="HTTP_Listener_config" path="/employees"/>
 		<db:select doc:name="Select" doc:id="77d510db-220d-4ccd-baff-cdd314c08629" config-ref="Database_Config">
