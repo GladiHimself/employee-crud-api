@@ -95,6 +95,17 @@ output application/json
                     </ee:variables>
                 </ee:transform>
             </on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="cadf6c34-6b7a-4b3e-b6b6-b3cf374884a7" type="DB:CONNECTIVITY">
+				<set-variable value="503" doc:name="Set Variable" doc:id="77fff5e4-f403-4706-b460-7630e567ca4e" variableName="httpStatus"/>
+				<ee:transform doc:name="Transform Message" doc:id="2edffed9-8e9c-47b4-8dd0-9b95d0a89ccf" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ error: "Service temporarily unavailable", detail: "Database connection failed" }]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
         </error-handler>
     </flow>
     <flow name="employee-crud-api-console">
@@ -203,22 +214,37 @@ payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="4c2ec42c-36a4-473e-a9f7-84fcac2a6bb5" variableName="empPayload"/>
-		<db:insert doc:name="Insert" doc:id="66cc4ebe-d26d-4c40-be31-45287642bab2" config-ref="Database_Config" autoGenerateKeys="true">
-			<db:sql ><![CDATA[INSERT INTO employee (name, department, salary) VALUES (:name, :dept, :salary)]]></db:sql>
-			<db:input-parameters ><![CDATA[#[{
+		<choice doc:name="Choice" doc:id="11d5dfb1-9dff-4b9f-bc45-2c16f4af18ee" >
+			<when expression="#[isEmpty(payload.name) or payload.salary == null or payload.salary &lt;= 0]">
+				<set-variable value="400" doc:name="Set Variable" doc:id="7474eae1-1a7d-49d8-9198-33bfc15725c2" variableName="httpStatus"/>
+				<ee:transform doc:name="Transform Message" doc:id="adca64f0-8bfa-4271-b39f-56e99a8a4a52" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ error: "Validation failed", detail: "name is required and salary must be positive" }]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<db:insert doc:name="Insert" doc:id="4490b7f3-4c5e-48ce-9177-6c34d637b6c4" config-ref="Database_Config" autoGenerateKeys="true" >
+					<db:sql ><![CDATA[INSERT INTO employee (name, department, salary) VALUES (:name, :dept, :salary)]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
   'name': vars.empPayload.name,
   'dept': vars.empPayload.department,
   'salary': vars.empPayload.salary
 }]]]></db:input-parameters>
-		</db:insert>
-		<set-variable value="201" doc:name="Set Variable" doc:id="bca9e4bc-1baf-4f8a-9f84-e98936757f45" variableName="httpStatus"/>
-		<ee:transform doc:name="Transform Message" doc:id="99d8cffa-ccd1-4fd0-8adf-f55880fd229c" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+				</db:insert>
+				<set-variable value="201" doc:name="Set Variable" doc:id="56bf712b-9f4f-47c5-bbc9-e39d0bf79a6d" variableName="httpStatus" />
+				<ee:transform doc:name="Transform Message" doc:id="5e6fd99e-0953-4cef-b11d-92a2cd842bbd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
 { message: "Employee created successfully" }]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
     </flow>
 </mule>
